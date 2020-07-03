@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * A response to a token request.
  *
- * @see TokenRequest
+ * @see TokenRevoRequest
  * @see "The OAuth 2.0 Authorization Framework (RFC 6749), Section 4.1.4
  * <https://tools.ietf.org/html/rfc6749#section-4.1.4>"
  */

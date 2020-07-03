@@ -51,6 +51,9 @@ public class AuthorizationServiceDiscovery {
     static final UriField TOKEN_ENDPOINT = uri("token_endpoint");
 
     @VisibleForTesting
+    static final UriField TOKEN_REVOCATION_ENDPOINT = uri("revocation_endpoint");
+
+    @VisibleForTesting
     static final UriField END_SESSION_ENPDINT = uri("end_session_endpoint");
 
     @VisibleForTesting
@@ -259,6 +262,14 @@ public class AuthorizationServiceDiscovery {
     @Nullable
     public Uri getTokenEndpoint() {
         return get(TOKEN_ENDPOINT);
+    }
+
+    /**
+     * The OAuth 2 token revocation endpoint URI. Not specified if only the implicit flow is used.
+     */
+    @Nullable
+    public Uri getTokenRevocationEndpoint() {
+        return get(TOKEN_REVOCATION_ENDPOINT);
     }
 
     /**

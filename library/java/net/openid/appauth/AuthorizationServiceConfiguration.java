@@ -59,6 +59,7 @@ public class AuthorizationServiceConfiguration {
 
     private static final String KEY_AUTHORIZATION_ENDPOINT = "authorizationEndpoint";
     private static final String KEY_TOKEN_ENDPOINT = "tokenEndpoint";
+    private static final String KEY_TOKEN_REVOCATION_ENDPOINT = "tokenRevocationEndpoint";
     private static final String KEY_REGISTRATION_ENDPOINT = "registrationEndpoint";
     private static final String KEY_DISCOVERY_DOC = "discoveryDoc";
     private static final String KEY_END_SESSION_ENPOINT = "endSessionEndpoint";
@@ -74,6 +75,12 @@ public class AuthorizationServiceConfiguration {
      */
     @NonNull
     public final Uri tokenEndpoint;
+
+    /**
+     * The authorization service's token revocation endpoint.
+     */
+    @NonNull
+    public final Uri tokenRevocationEndpoint;
 
     /**
      * The end session service's endpoint;
@@ -102,11 +109,15 @@ public class AuthorizationServiceConfiguration {
      * @param tokenEndpoint The
      *     [token endpoint URI](https://tools.ietf.org/html/rfc6749#section-3.2)
      *     for the service.
+     * @param tokenRevocationEndpoint The
+     *     [token revocation endpoint URI](https://tools.ietf.org/html/rfc7009)
+     *     for the service.
      */
     public AuthorizationServiceConfiguration(
             @NonNull Uri authorizationEndpoint,
-            @NonNull Uri tokenEndpoint) {
-        this(authorizationEndpoint, tokenEndpoint, null, null);
+            @NonNull Uri tokenEndpoint,
+            @NonNull Uri tokenRevocationEndpoint) {
+        this(authorizationEndpoint, tokenEndpoint, tokenRevocationEndpoint, null, null);
     }
 
     /**
@@ -117,6 +128,9 @@ public class AuthorizationServiceConfiguration {
      * @param tokenEndpoint The
      *     [token endpoint URI](https://tools.ietf.org/html/rfc6749#section-3.2)
      *     for the service.
+     * @param tokenRevocationEndpoint The
+     *     [token revocation endpoint URI](https://tools.ietf.org/html/rfc7009)
+     *     for the service.
      * @param endSessionEndpoint The
      *      [end session endpoint URI](https://tools.ietf.org/html/rfc6749#section-2.2)
      *      for the service.
@@ -126,10 +140,12 @@ public class AuthorizationServiceConfiguration {
     public AuthorizationServiceConfiguration(
             @NonNull Uri authorizationEndpoint,
             @NonNull Uri tokenEndpoint,
+            @NonNull Uri tokenRevocationEndpoint,
             @Nullable Uri endSessionEndpoint,
             @Nullable Uri registrationEndpoint) {
         this.authorizationEndpoint = checkNotNull(authorizationEndpoint);
         this.tokenEndpoint = checkNotNull(tokenEndpoint);
+        this.tokenRevocationEndpoint = checkNotNull(tokenRevocationEndpoint);
         this.endSessionEndpoint = endSessionEndpoint;
         this.registrationEndpoint = registrationEndpoint;
         this.discoveryDoc = null;
@@ -147,6 +163,7 @@ public class AuthorizationServiceConfiguration {
         this.discoveryDoc = discoveryDoc;
         this.authorizationEndpoint = discoveryDoc.getAuthorizationEndpoint();
         this.tokenEndpoint = discoveryDoc.getTokenEndpoint();
+        this.tokenRevocationEndpoint = discoveryDoc.getTokenRevocationEndpoint();
         this.registrationEndpoint = discoveryDoc.getRegistrationEndpoint();
         this.endSessionEndpoint = discoveryDoc.getEndSessionEndpoint();
     }
@@ -164,8 +181,12 @@ public class AuthorizationServiceConfiguration {
         }
         if (discoveryDoc != null) {
             JsonUtil.put(json, KEY_DISCOVERY_DOC, discoveryDoc.docJson);
-        } if (endSessionEndpoint != null) {
+        }
+        if (endSessionEndpoint != null) {
             JsonUtil.put(json, KEY_END_SESSION_ENPOINT, endSessionEndpoint.toString());
+        }
+        if (tokenRevocationEndpoint != null) {
+            JsonUtil.put(json, KEY_TOKEN_REVOCATION_ENDPOINT, tokenRevocationEndpoint.toString());
         }
         return json;
     }
@@ -201,12 +222,13 @@ public class AuthorizationServiceConfiguration {
         } else {
             checkArgument(json.has(KEY_AUTHORIZATION_ENDPOINT), "missing authorizationEndpoint");
             checkArgument(json.has(KEY_TOKEN_ENDPOINT), "missing tokenEndpoint");
+            checkArgument(json.has(KEY_TOKEN_REVOCATION_ENDPOINT), "missing tokenRevocationEndpoint");
             return new AuthorizationServiceConfiguration(
-                    JsonUtil.getUri(json, KEY_AUTHORIZATION_ENDPOINT),
-                    JsonUtil.getUri(json, KEY_TOKEN_ENDPOINT),
+                JsonUtil.getUri(json, KEY_AUTHORIZATION_ENDPOINT),
+                JsonUtil.getUri(json, KEY_TOKEN_ENDPOINT),
+                JsonUtil.getUri(json, KEY_TOKEN_REVOCATION_ENDPOINT),
                 JsonUtil.getUriIfDefined(json, KEY_END_SESSION_ENPOINT),
-                JsonUtil.getUriIfDefined(json,
-                    KEY_REGISTRATION_ENDPOINT));
+                JsonUtil.getUriIfDefined(json, KEY_REGISTRATION_ENDPOINT));
         }
     }
 
