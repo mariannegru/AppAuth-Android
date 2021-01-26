@@ -51,26 +51,6 @@ either through custom URI scheme redirects, or App Links.
 AS's that assume all clients are web-based or require clients to maintain
 confidentiality of the client secrets may not work well.
 
-From Android API 30 (R) and above, set [queries](https://developer.android.com/preview/privacy/package-visibility) in the manifest,
-to enable AppAuth searching for usable installed browsers.
-```xml
-<manifest package="com.example.game">
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="https" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.APP_BROWSER" />
-            <data android:scheme="https" />
-        </intent>
-    </queries>
-    ...
-</manifest>
-```
-
 ## Demo app
 
 A demo app is contained within this repository. For instructions on how to
@@ -174,21 +154,20 @@ AuthorizationServiceConfiguration serviceConfig =
 Where available, using an OpenID Connect discovery document is preferable:
 
 ```java
-AuthorizationServiceConfiguration serviceConfig =
-    AuthorizationServiceConfiguration.fetchFromIssuer(
-        Uri.parse("https://idp.example.com"),
-        new RetrieveConfigurationCallback() {
-          void onFetchConfigurationCompleted(
-              @Nullable AuthorizationServiceConfiguration serviceConfiguration,
-              @Nullable AuthorizationException ex) {
-            if (ex != null) {
-              Log.e(TAG, "failed to fetch configuration");
-              return;
-            }
+AuthorizationServiceConfiguration.fetchFromIssuer(
+    Uri.parse("https://idp.example.com"),
+    new AuthorizationServiceConfiguration.RetrieveConfigurationCallback() {
+      public void onFetchConfigurationCompleted(
+          @Nullable AuthorizationServiceConfiguration serviceConfiguration,
+          @Nullable AuthorizationException ex) {
+        if (ex != null) {
+          Log.e(TAG, "failed to fetch configuration");
+          return;
+        }
 
-            // use serviceConfiguration as needed
-          }
-        });
+        // use serviceConfiguration as needed
+      }
+    });
 ```
 
 This will attempt to download a discovery document from the standard location
@@ -523,10 +502,9 @@ store private to the app:
 ```java
 @NonNull public AuthState readAuthState() {
   SharedPreferences authPrefs = getSharedPreferences("auth", MODE_PRIVATE);
-  String stateJson = authPrefs.getString("stateJson");
-  AuthState state;
-  if (stateStr != null) {
-    return AuthState.fromJsonString(stateJson);
+  String stateJson = authPrefs.getString("stateJson", null);
+  if (stateJson != null) {
+    return AuthState.jsonDeserialize(stateJson);
   } else {
     return new AuthState();
   }
@@ -535,7 +513,7 @@ store private to the app:
 public void writeAuthState(@NonNull AuthState state) {
   SharedPreferences authPrefs = getSharedPreferences("auth", MODE_PRIVATE);
   authPrefs.edit()
-      .putString("stateJson", state.toJsonString())
+      .putString("stateJson", state.jsonSerializeString())
       .apply();
 }
 ```

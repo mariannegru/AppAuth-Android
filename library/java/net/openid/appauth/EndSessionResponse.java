@@ -27,6 +27,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
  * A response to end session request.
  *
@@ -76,6 +79,7 @@ public class EndSessionResponse extends AuthorizationManagementResponse {
             setRequest(request);
         }
 
+        @VisibleForTesting
         Builder fromUri(@NonNull Uri uri) {
             setState(uri.getQueryParameter(EndSessionRequest.KEY_STATE));
             return this;
