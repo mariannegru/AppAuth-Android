@@ -16,8 +16,11 @@ package net.openid.appauth;
 
 import static net.openid.appauth.Preconditions.checkNotNull;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.net.Uri;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -52,6 +55,7 @@ class AuthorizationManagementUtil {
      * Builds an AuthorizationManagementResponse from
      * {@link AuthorizationManagementRequest} and {@link Uri}
      */
+    @SuppressLint("VisibleForTests")
     static AuthorizationManagementResponse responseWith(
             AuthorizationManagementRequest request, Uri uri) {
         if (request instanceof AuthorizationRequest) {

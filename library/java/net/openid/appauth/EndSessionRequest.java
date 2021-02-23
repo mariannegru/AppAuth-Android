@@ -26,6 +26,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
  * An OpenID end session request.
  *

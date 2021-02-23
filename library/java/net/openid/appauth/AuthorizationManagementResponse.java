@@ -15,6 +15,7 @@
 package net.openid.appauth;
 
 import android.content.Intent;
+import androidx.annotation.NonNull;
 
 import org.json.JSONObject;
 
