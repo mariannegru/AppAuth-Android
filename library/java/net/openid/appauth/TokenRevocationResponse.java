@@ -14,6 +14,15 @@
 
 package net.openid.appauth;
 
+import static net.openid.appauth.AdditionalParamsProcessor.checkAdditionalParams;
+import static net.openid.appauth.AdditionalParamsProcessor.extractAdditionalParams;
+import static net.openid.appauth.Preconditions.checkNotEmpty;
+import static net.openid.appauth.Preconditions.checkNotNull;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -22,15 +31,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.VisibleForTesting;
-
-import static net.openid.appauth.AdditionalParamsProcessor.checkAdditionalParams;
-import static net.openid.appauth.AdditionalParamsProcessor.extractAdditionalParams;
-import static net.openid.appauth.Preconditions.checkNotEmpty;
-import static net.openid.appauth.Preconditions.checkNotNull;
 
 /**
  * A response to a token revocation request.
@@ -58,9 +58,7 @@ public class TokenRevocationResponse {
     @VisibleForTesting
     static final String KEY_ADDITIONAL_PARAMETERS = "additionalParameters";
 
-    private static final Set<String> BUILT_IN_PARAMS = new HashSet<>(Arrays.asList(
-            KEY_TOKEN
-    ));
+    private static final Set<String> BUILT_IN_PARAMS = new HashSet<>(Arrays.asList(KEY_TOKEN));
 
     /**
      * The token request associated with this response.
@@ -73,6 +71,68 @@ public class TokenRevocationResponse {
      */
     @NonNull
     public final Map<String, String> additionalParameters;
+
+    TokenRevocationResponse(
+            @NonNull TokenRevocationRequest request,
+            @NonNull Map<String, String> additionalParameters) {
+        this.request = request;
+        this.additionalParameters = additionalParameters;
+    }
+
+    /**
+     * Reads a token response from a JSON string, and associates it with the provided request.
+     * If a request is not provided, its serialized form is expected to be found in the JSON
+     * (as if produced by a prior call to {@link #jsonSerialize()}.
+     *
+     * @throws JSONException if the JSON is malformed or missing required fields.
+     */
+    @NonNull
+    public static TokenRevocationResponse jsonDeserialize(@NonNull JSONObject json)
+            throws JSONException {
+        if (!json.has(KEY_REQUEST)) {
+            throw new IllegalArgumentException(
+                "token request not provided and not found in JSON");
+        }
+        return new TokenRevocationResponse.Builder(
+            TokenRevocationRequest.jsonDeserialize(json.getJSONObject(KEY_REQUEST)))
+            .setAdditionalParameters(JsonUtil.getStringMap(json, KEY_ADDITIONAL_PARAMETERS))
+            .build();
+    }
+
+    /**
+     * Reads a token response from a JSON string, and associates it with the provided request.
+     * If a request is not provided, its serialized form is expected to be found in the JSON
+     * (as if produced by a prior call to {@link #jsonSerialize()}.
+     *
+     * @throws JSONException if the JSON is malformed or missing required fields.
+     */
+    @NonNull
+    public static TokenRevocationResponse jsonDeserialize(@NonNull String jsonStr)
+            throws JSONException {
+        checkNotEmpty(jsonStr, "jsonStr cannot be null or empty");
+        return jsonDeserialize(new JSONObject(jsonStr));
+    }
+
+    /**
+     * Produces a JSON string representation of the token response for persistent storage or
+     * local transmission (e.g. between activities).
+     */
+    public JSONObject jsonSerialize() {
+        JSONObject json = new JSONObject();
+        JsonUtil.put(json, KEY_REQUEST, request.jsonSerialize());
+        JsonUtil.put(json, KEY_ADDITIONAL_PARAMETERS,
+                JsonUtil.mapToJsonObject(additionalParameters));
+        return json;
+    }
+
+    /**
+     * Produces a JSON string representation of the token response for persistent storage or
+     * local transmission (e.g. between activities). This method is just a convenience wrapper
+     * for {@link #jsonSerialize()}, converting the JSON object to its string form.
+     */
+    public String jsonSerializeString() {
+        return jsonSerialize().toString();
+    }
 
     /**
      * Creates instances of {@link TokenRevocationResponse}.
@@ -138,66 +198,8 @@ public class TokenRevocationResponse {
          */
         public TokenRevocationResponse build() {
             return new TokenRevocationResponse(
-                    mRequest,
-                    mAdditionalParameters);
+                mRequest,
+                mAdditionalParameters);
         }
-    }
-
-    TokenRevocationResponse(
-            @NonNull TokenRevocationRequest request,
-            @NonNull Map<String, String> additionalParameters) {
-        this.request = request;
-        this.additionalParameters = additionalParameters;
-    }
-
-    /**
-     * Produces a JSON string representation of the token response for persistent storage or
-     * local transmission (e.g. between activities).
-     */
-    public JSONObject jsonSerialize() {
-        JSONObject json = new JSONObject();
-        JsonUtil.put(json, KEY_REQUEST, request.jsonSerialize());
-        JsonUtil.put(json, KEY_ADDITIONAL_PARAMETERS,
-                JsonUtil.mapToJsonObject(additionalParameters));
-        return json;
-    }
-
-    /**
-     * Produces a JSON string representation of the token response for persistent storage or
-     * local transmission (e.g. between activities). This method is just a convenience wrapper
-     * for {@link #jsonSerialize()}, converting the JSON object to its string form.
-     */
-    public String jsonSerializeString() {
-        return jsonSerialize().toString();
-    }
-
-    /**
-     * Reads a token response from a JSON string, and associates it with the provided request.
-     * If a request is not provided, its serialized form is expected to be found in the JSON
-     * (as if produced by a prior call to {@link #jsonSerialize()}.
-     * @throws JSONException if the JSON is malformed or missing required fields.
-     */
-    @NonNull
-    public static TokenRevocationResponse jsonDeserialize(@NonNull JSONObject json) throws JSONException {
-        if (!json.has(KEY_REQUEST)) {
-            throw new IllegalArgumentException(
-                    "token request not provided and not found in JSON");
-        }
-        return new TokenRevocationResponse.Builder(
-                TokenRevocationRequest.jsonDeserialize(json.getJSONObject(KEY_REQUEST)))
-                .setAdditionalParameters(JsonUtil.getStringMap(json, KEY_ADDITIONAL_PARAMETERS))
-                .build();
-    }
-
-    /**
-     * Reads a token response from a JSON string, and associates it with the provided request.
-     * If a request is not provided, its serialized form is expected to be found in the JSON
-     * (as if produced by a prior call to {@link #jsonSerialize()}.
-     * @throws JSONException if the JSON is malformed or missing required fields.
-     */
-    @NonNull
-    public static TokenRevocationResponse jsonDeserialize(@NonNull String jsonStr) throws JSONException {
-        checkNotEmpty(jsonStr, "jsonStr cannot be null or empty");
-        return jsonDeserialize(new JSONObject(jsonStr));
     }
 }

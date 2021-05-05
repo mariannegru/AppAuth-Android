@@ -159,7 +159,7 @@ public class AuthorizationServiceConfiguration {
             @Nullable Uri tokenRevocationEndpoint) {
         this.authorizationEndpoint = checkNotNull(authorizationEndpoint);
         this.tokenEndpoint = checkNotNull(tokenEndpoint);
-		this.tokenRevocationEndpoint = tokenRevocationEndpoint;
+        this.tokenRevocationEndpoint = tokenRevocationEndpoint;
         this.registrationEndpoint = registrationEndpoint;
         this.endSessionEndpoint = endSessionEndpoint;
         this.discoveryDoc = null;

@@ -414,25 +414,25 @@ public final class AuthorizationException extends Exception {
          * An `invalid_request` OAuth2 error response.
          */
         public static final AuthorizationException INVALID_REQUEST =
-            tokenEx(2000, "invalid_request");
+                tokenEx(2000, "invalid_request");
 
         /**
          * An `invalid_client` OAuth2 error response.
          */
         public static final AuthorizationException INVALID_CLIENT =
-            tokenEx(2001, "invalid_client");
+                tokenEx(2001, "invalid_client");
 
         /**
          * An `unauthorized_client` OAuth2 error response.
          */
         public static final AuthorizationException UNAUTHORIZED_CLIENT =
-            tokenEx(2003, "unauthorized_client");
+                tokenEx(2003, "unauthorized_client");
 
         /**
          * An `unsupported_token_type` OAuth2 error response.
          */
         public static final AuthorizationException UNSUPPORTED_TOKEN_TYPE =
-            tokenEx(2004, "unsupported_token_type");
+                tokenEx(2004, "unsupported_token_type");
 
         /**
          * Indicates an OAuth error as per RFC 6749, but the error code is not known to the
@@ -441,15 +441,15 @@ public final class AuthorizationException extends Exception {
          * the server.
          */
         public static final AuthorizationException OTHER =
-            tokenEx(2007, null);
+                tokenEx(2007, null);
 
         private static final Map<String, AuthorizationException> STRING_TO_EXCEPTION =
-            exceptionMapByString(
-                INVALID_REQUEST,
-                INVALID_CLIENT,
-                UNAUTHORIZED_CLIENT,
-                UNSUPPORTED_TOKEN_TYPE,
-                OTHER);
+                exceptionMapByString(
+                    INVALID_REQUEST,
+                    INVALID_CLIENT,
+                    UNAUTHORIZED_CLIENT,
+                    UNSUPPORTED_TOKEN_TYPE,
+                    OTHER);
 
         /**
          * Returns the matching exception type for the provided OAuth2 error string, or

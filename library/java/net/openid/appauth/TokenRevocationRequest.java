@@ -14,8 +14,14 @@
 
 package net.openid.appauth;
 
+import static net.openid.appauth.AdditionalParamsProcessor.checkAdditionalParams;
+import static net.openid.appauth.Preconditions.checkNotEmpty;
+import static net.openid.appauth.Preconditions.checkNotNull;
+
 import android.net.Uri;
-import android.text.TextUtils;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,15 +35,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.VisibleForTesting;
-
-import static net.openid.appauth.AdditionalParamsProcessor.checkAdditionalParams;
-import static net.openid.appauth.Preconditions.checkNotEmpty;
-import static net.openid.appauth.Preconditions.checkNotNull;
-import static net.openid.appauth.Preconditions.checkNullOrNotEmpty;
-
 /**
  * An OAuth2 token revocation request. These are used to revocation tokens.
  *
@@ -46,6 +43,7 @@ import static net.openid.appauth.Preconditions.checkNullOrNotEmpty;
  */
 public class TokenRevocationRequest {
 
+    public static final String PARAM_CLIENT_ID = "client_id";
     @VisibleForTesting
     static final String KEY_CONFIGURATION = "configuration";
     @VisibleForTesting
@@ -56,9 +54,6 @@ public class TokenRevocationRequest {
     static final String KEY_TOKEN = "token";
     @VisibleForTesting
     static final String KEY_ADDITIONAL_PARAMETERS = "additionalParameters";
-
-    public static final String PARAM_CLIENT_ID = "client_id";
-
     @VisibleForTesting
     static final String PARAM_REDIRECT_URI = "redirect_uri";
 
@@ -136,6 +131,103 @@ public class TokenRevocationRequest {
      */
     @NonNull
     public final Map<String, String> additionalParameters;
+
+    private TokenRevocationRequest(
+            @NonNull AuthorizationServiceConfiguration configuration,
+            @NonNull String clientId,
+            @Nullable Uri redirectUri,
+            @Nullable String token,
+            @Nullable String codeVerifier,
+            @NonNull Map<String, String> additionalParameters) {
+        this.configuration = configuration;
+        this.clientId = clientId;
+        this.redirectUri = redirectUri;
+        this.token = token;
+        this.codeVerifier = codeVerifier;
+        this.additionalParameters = additionalParameters;
+    }
+
+    /**
+     * Reads a token request from a JSON string representation produced by
+     * {@link #jsonSerialize()}.
+     * @throws JSONException if the provided JSON does not match the expected structure.
+     */
+    @NonNull
+    public static TokenRevocationRequest jsonDeserialize(JSONObject json) throws JSONException {
+        checkNotNull(json, "json object cannot be null");
+
+        TokenRevocationRequest.Builder builder = new TokenRevocationRequest.Builder(
+                AuthorizationServiceConfiguration.fromJson(json.getJSONObject(KEY_CONFIGURATION)),
+                JsonUtil.getString(json, KEY_CLIENT_ID))
+                .setRedirectUri(JsonUtil.getUriIfDefined(json, KEY_REDIRECT_URI))
+                .setToken(JsonUtil.getStringIfDefined(json, KEY_TOKEN))
+                .setAdditionalParameters(JsonUtil.getStringMap(json, KEY_ADDITIONAL_PARAMETERS));
+
+        return builder.build();
+    }
+
+    /**
+     * Reads a token request from a JSON string representation produced by
+     * {@link #jsonSerializeString()}. This method is just a convenience wrapper for
+     * {@link #jsonDeserialize(JSONObject)}, converting the JSON string to its JSON object form.
+     * @throws JSONException if the provided JSON does not match the expected structure.
+     */
+    @NonNull
+    public static TokenRevocationRequest jsonDeserialize(@NonNull String json)
+            throws JSONException {
+        checkNotNull(json, "json string cannot be null");
+        return jsonDeserialize(new JSONObject(json));
+    }
+
+    /**
+     * Produces the set of request parameters for this query, which can be further
+     * processed into a request body.
+     */
+    @NonNull
+    public Map<String, String> getRequestParameters() {
+        Map<String, String> params = new HashMap<>();
+        putIfNotNull(params, PARAM_REDIRECT_URI, redirectUri);
+        putIfNotNull(params, PARAM_TOKEN, token);
+        putIfNotNull(params, PARAM_CODE_VERIFIER, codeVerifier);
+
+        for (Entry<String, String> param : additionalParameters.entrySet()) {
+            params.put(param.getKey(), param.getValue());
+        }
+
+        return params;
+    }
+
+    private void putIfNotNull(Map<String, String> map, String key, Object value) {
+        if (value != null) {
+            map.put(key, value.toString());
+        }
+    }
+
+    /**
+     * Produces a JSON string representation of the token request for persistent storage or
+     * local transmission (e.g. between activities).
+     */
+    @NonNull
+    public JSONObject jsonSerialize() {
+        JSONObject json = new JSONObject();
+        JsonUtil.put(json, KEY_CONFIGURATION, configuration.toJson());
+        JsonUtil.put(json, KEY_CLIENT_ID, clientId);
+        JsonUtil.putIfNotNull(json, KEY_REDIRECT_URI, redirectUri);
+        JsonUtil.putIfNotNull(json, KEY_TOKEN, token);
+        JsonUtil.put(json, KEY_ADDITIONAL_PARAMETERS,
+                JsonUtil.mapToJsonObject(additionalParameters));
+        return json;
+    }
+
+    /**
+     * Produces a JSON string representation of the token request for persistent storage or
+     * local transmission (e.g. between activities). This method is just a convenience wrapper
+     * for {@link #jsonSerialize()}, converting the JSON object to its string form.
+     */
+    @NonNull
+    public String jsonSerializeString() {
+        return jsonSerialize().toString();
+    }
 
     /**
      * Creates instances of {@link TokenRevocationRequest}.
@@ -244,7 +336,8 @@ public class TokenRevocationRequest {
         }
 
         /**
-         * Produces a {@link TokenRevocationRequest} instance, if all necessary values have been provided.
+         * Produces a {@link TokenRevocationRequest} instance,
+         * if all necessary values have been provided.
          */
         @NonNull
         public TokenRevocationRequest build() {
@@ -256,101 +349,5 @@ public class TokenRevocationRequest {
                     mCodeVerifier,
                     Collections.unmodifiableMap(mAdditionalParameters));
         }
-    }
-
-    private TokenRevocationRequest(
-            @NonNull AuthorizationServiceConfiguration configuration,
-            @NonNull String clientId,
-            @Nullable Uri redirectUri,
-            @Nullable String token,
-            @Nullable String codeVerifier,
-            @NonNull Map<String, String> additionalParameters) {
-        this.configuration = configuration;
-        this.clientId = clientId;
-        this.redirectUri = redirectUri;
-        this.token = token;
-        this.codeVerifier = codeVerifier;
-        this.additionalParameters = additionalParameters;
-    }
-
-    /**
-     * Produces the set of request parameters for this query, which can be further
-     * processed into a request body.
-     */
-    @NonNull
-    public Map<String, String> getRequestParameters() {
-        Map<String, String> params = new HashMap<>();
-        putIfNotNull(params, PARAM_REDIRECT_URI, redirectUri);
-        putIfNotNull(params, PARAM_TOKEN, token);
-        putIfNotNull(params, PARAM_CODE_VERIFIER, codeVerifier);
-
-        for (Entry<String, String> param : additionalParameters.entrySet()) {
-            params.put(param.getKey(), param.getValue());
-        }
-
-        return params;
-    }
-
-    private void putIfNotNull(Map<String, String> map, String key, Object value) {
-        if (value != null) {
-            map.put(key, value.toString());
-        }
-    }
-
-    /**
-     * Produces a JSON string representation of the token request for persistent storage or
-     * local transmission (e.g. between activities).
-     */
-    @NonNull
-    public JSONObject jsonSerialize() {
-        JSONObject json = new JSONObject();
-        JsonUtil.put(json, KEY_CONFIGURATION, configuration.toJson());
-        JsonUtil.put(json, KEY_CLIENT_ID, clientId);
-        JsonUtil.putIfNotNull(json, KEY_REDIRECT_URI, redirectUri);
-        JsonUtil.putIfNotNull(json, KEY_TOKEN, token);
-        JsonUtil.put(json, KEY_ADDITIONAL_PARAMETERS,
-                JsonUtil.mapToJsonObject(additionalParameters));
-        return json;
-    }
-
-    /**
-     * Produces a JSON string representation of the token request for persistent storage or
-     * local transmission (e.g. between activities). This method is just a convenience wrapper
-     * for {@link #jsonSerialize()}, converting the JSON object to its string form.
-     */
-    @NonNull
-    public String jsonSerializeString() {
-        return jsonSerialize().toString();
-    }
-
-    /**
-     * Reads a token request from a JSON string representation produced by
-     * {@link #jsonSerialize()}.
-     * @throws JSONException if the provided JSON does not match the expected structure.
-     */
-    @NonNull
-    public static TokenRevocationRequest jsonDeserialize(JSONObject json) throws JSONException {
-        checkNotNull(json, "json object cannot be null");
-
-        TokenRevocationRequest.Builder builder = new TokenRevocationRequest.Builder(
-                AuthorizationServiceConfiguration.fromJson(json.getJSONObject(KEY_CONFIGURATION)),
-                JsonUtil.getString(json, KEY_CLIENT_ID))
-                .setRedirectUri(JsonUtil.getUriIfDefined(json, KEY_REDIRECT_URI))
-                .setToken(JsonUtil.getStringIfDefined(json, KEY_TOKEN))
-                .setAdditionalParameters(JsonUtil.getStringMap(json, KEY_ADDITIONAL_PARAMETERS));
-
-        return builder.build();
-    }
-
-    /**
-     * Reads a token request from a JSON string representation produced by
-     * {@link #jsonSerializeString()}. This method is just a convenience wrapper for
-     * {@link #jsonDeserialize(JSONObject)}, converting the JSON string to its JSON object form.
-     * @throws JSONException if the provided JSON does not match the expected structure.
-     */
-    @NonNull
-    public static TokenRevocationRequest jsonDeserialize(@NonNull String json) throws JSONException {
-        checkNotNull(json, "json string cannot be null");
-        return jsonDeserialize(new JSONObject(json));
     }
 }

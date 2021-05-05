@@ -500,8 +500,8 @@ public class AuthorizationService {
      *  The result of this request will be sent to the provided callback handler.
      */
     public void performTokenRevocationRequest(
-        @NonNull TokenRevocationRequest request,
-        @NonNull TokenRevocationResponseCallback callback) {
+            @NonNull TokenRevocationRequest request,
+            @NonNull TokenRevocationResponseCallback callback) {
         performTokenRevocationRequest(request, NoClientAuthentication.INSTANCE, callback);
     }
 
@@ -510,12 +510,12 @@ public class AuthorizationService {
      *  The result of this request will be sent to the provided callback handler.
      */
     public void performTokenRevocationRequest(
-        @NonNull TokenRevocationRequest request,
-        @NonNull ClientAuthentication clientAuthentication,
-        @NonNull TokenRevocationResponseCallback callback) {
+            @NonNull TokenRevocationRequest request,
+            @NonNull ClientAuthentication clientAuthentication,
+            @NonNull TokenRevocationResponseCallback callback) {
         checkNotDisposed();
         Logger.debug("Initiating token revocation request to %s",
-            request.configuration.tokenRevocationEndpoint);
+                request.configuration.tokenRevocationEndpoint);
         new TokenRevocationRequestTask(
             request,
             clientAuthentication,
@@ -777,7 +777,7 @@ public class AuthorizationService {
     }
 
     private static class TokenRevocationRequestTask
-        extends AsyncTask<Void, Void, JSONObject> {
+            extends AsyncTask<Void, Void, JSONObject> {
 
         private TokenRevocationRequest mRequest;
         private ClientAuthentication mClientAuthentication;
@@ -804,14 +804,14 @@ public class AuthorizationService {
             InputStream is = null;
             try {
                 HttpURLConnection conn = mConnectionBuilder.openConnection(
-                    mRequest.configuration.tokenRevocationEndpoint);
+                        mRequest.configuration.tokenRevocationEndpoint);
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
                 addJsonToAcceptHeader(conn);
                 conn.setDoOutput(true);
 
                 Map<String, String> headers = mClientAuthentication
-                    .getRequestHeaders(mRequest.clientId);
+                        .getRequestHeaders(mRequest.clientId);
                 if (headers != null) {
                     for (Map.Entry<String,String> header : headers.entrySet()) {
                         conn.setRequestProperty(header.getKey(), header.getValue());
@@ -820,7 +820,7 @@ public class AuthorizationService {
 
                 Map<String, String> parameters = mRequest.getRequestParameters();
                 Map<String, String> clientAuthParams = mClientAuthentication
-                    .getRequestParameters(mRequest.clientId);
+                        .getRequestParameters(mRequest.clientId);
                 if (clientAuthParams != null) {
                     parameters.putAll(clientAuthParams);
                 }
@@ -833,13 +833,15 @@ public class AuthorizationService {
                 wr.flush();
 
                 if (conn.getResponseCode() >= HttpURLConnection.HTTP_OK
-                    && conn.getResponseCode() < HttpURLConnection.HTTP_MULT_CHOICE) {
+                        && conn.getResponseCode() < HttpURLConnection.HTTP_MULT_CHOICE) {
                     is = conn.getInputStream();
                 } else {
                     is = conn.getErrorStream();
                 }
                 String response = Utils.readInputStream(is);
-                if(response == null || response.isEmpty()) return new JSONObject();
+                if (response == null || response.isEmpty()) {
+                    return new JSONObject();
+                }
                 return new JSONObject(response);
             } catch (IOException ex) {
                 Logger.debugWithStack(ex, "Failed to complete exchange request");
@@ -883,17 +885,18 @@ public class AuthorizationService {
 
             TokenRevocationResponse response;
             try {
-                response = new TokenRevocationResponse.Builder(mRequest).fromResponseJson(json).build();
+                response = new TokenRevocationResponse.Builder(mRequest).fromResponseJson(json)
+                        .build();
             } catch (JSONException jsonEx) {
                 mCallback.onTokenRevocationRequestCompleted(null,
-                    AuthorizationException.fromTemplate(
-                        GeneralErrors.JSON_DESERIALIZATION_ERROR,
-                        jsonEx));
+                        AuthorizationException.fromTemplate(
+                                GeneralErrors.JSON_DESERIALIZATION_ERROR,
+                                jsonEx));
                 return;
             }
 
             Logger.debug("Token revocation with %s completed",
-                mRequest.configuration.tokenEndpoint);
+                    mRequest.configuration.tokenEndpoint);
             mCallback.onTokenRevocationRequestCompleted(response, null);
         }
 
