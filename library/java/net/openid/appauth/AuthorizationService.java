@@ -496,6 +496,36 @@ public class AuthorizationService {
     }
 
     /**
+     * Sends a request to the authorization service to revoke a token.
+     *  The result of this request will be sent to the provided callback handler.
+     */
+    public void performTokenRevocationRequest(
+        @NonNull TokenRevocationRequest request,
+        @NonNull TokenRevocationResponseCallback callback) {
+        performTokenRevocationRequest(request, NoClientAuthentication.INSTANCE, callback);
+    }
+
+    /**
+     * Sends a request to the authorization service to revoke a token.
+     *  The result of this request will be sent to the provided callback handler.
+     */
+    public void performTokenRevocationRequest(
+        @NonNull TokenRevocationRequest request,
+        @NonNull ClientAuthentication clientAuthentication,
+        @NonNull TokenRevocationResponseCallback callback) {
+        checkNotDisposed();
+        Logger.debug("Initiating token revocation request to %s",
+            request.configuration.tokenRevocationEndpoint);
+        new TokenRevocationRequestTask(
+            request,
+            clientAuthentication,
+            mClientConfiguration.getConnectionBuilder(),
+            SystemClock.INSTANCE,
+            callback)
+            .execute();
+    }
+
+    /**
      * Sends a request to the authorization service to dynamically register a client.
      * The result of this request will be sent to the provided callback handler.
      */
@@ -744,6 +774,162 @@ public class AuthorizationService {
          */
         void onTokenRequestCompleted(@Nullable TokenResponse response,
                 @Nullable AuthorizationException ex);
+    }
+
+    private static class TokenRevocationRequestTask
+        extends AsyncTask<Void, Void, JSONObject> {
+
+        private TokenRevocationRequest mRequest;
+        private ClientAuthentication mClientAuthentication;
+        private final ConnectionBuilder mConnectionBuilder;
+        private TokenRevocationResponseCallback mCallback;
+        private Clock mClock;
+
+        private AuthorizationException mException;
+
+        TokenRevocationRequestTask(TokenRevocationRequest request,
+                         @NonNull ClientAuthentication clientAuthentication,
+                         @NonNull ConnectionBuilder connectionBuilder,
+                         Clock clock,
+                         TokenRevocationResponseCallback callback) {
+            mRequest = request;
+            mClientAuthentication = clientAuthentication;
+            mConnectionBuilder = connectionBuilder;
+            mClock = clock;
+            mCallback = callback;
+        }
+
+        @Override
+        protected JSONObject doInBackground(Void... voids) {
+            InputStream is = null;
+            try {
+                HttpURLConnection conn = mConnectionBuilder.openConnection(
+                    mRequest.configuration.tokenRevocationEndpoint);
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                addJsonToAcceptHeader(conn);
+                conn.setDoOutput(true);
+
+                Map<String, String> headers = mClientAuthentication
+                    .getRequestHeaders(mRequest.clientId);
+                if (headers != null) {
+                    for (Map.Entry<String,String> header : headers.entrySet()) {
+                        conn.setRequestProperty(header.getKey(), header.getValue());
+                    }
+                }
+
+                Map<String, String> parameters = mRequest.getRequestParameters();
+                Map<String, String> clientAuthParams = mClientAuthentication
+                    .getRequestParameters(mRequest.clientId);
+                if (clientAuthParams != null) {
+                    parameters.putAll(clientAuthParams);
+                }
+
+                String queryData = UriUtil.formUrlEncode(parameters);
+                conn.setRequestProperty("Content-Length", String.valueOf(queryData.length()));
+                OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
+
+                wr.write(queryData);
+                wr.flush();
+
+                if (conn.getResponseCode() >= HttpURLConnection.HTTP_OK
+                    && conn.getResponseCode() < HttpURLConnection.HTTP_MULT_CHOICE) {
+                    is = conn.getInputStream();
+                } else {
+                    is = conn.getErrorStream();
+                }
+                String response = Utils.readInputStream(is);
+                if(response == null || response.isEmpty()) return new JSONObject();
+                return new JSONObject(response);
+            } catch (IOException ex) {
+                Logger.debugWithStack(ex, "Failed to complete exchange request");
+                mException = AuthorizationException.fromTemplate(
+                    GeneralErrors.NETWORK_ERROR, ex);
+            } catch (JSONException ex) {
+                Logger.debugWithStack(ex, "Failed to complete exchange request");
+                mException = AuthorizationException.fromTemplate(
+                    GeneralErrors.JSON_DESERIALIZATION_ERROR, ex);
+            } finally {
+                Utils.closeQuietly(is);
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(JSONObject json) {
+            if (mException != null) {
+                mCallback.onTokenRevocationRequestCompleted(null, mException);
+                return;
+            }
+
+            if (json.has(AuthorizationException.PARAM_ERROR)) {
+                AuthorizationException ex;
+                try {
+                    String error = json.getString(AuthorizationException.PARAM_ERROR);
+                    ex = AuthorizationException.fromOAuthTemplate(
+                        TokenRequestErrors.byString(error),
+                        error,
+                        json.optString(AuthorizationException.PARAM_ERROR_DESCRIPTION, null),
+                        UriUtil.parseUriIfAvailable(
+                            json.optString(AuthorizationException.PARAM_ERROR_URI)));
+                } catch (JSONException jsonEx) {
+                    ex = AuthorizationException.fromTemplate(
+                        GeneralErrors.JSON_DESERIALIZATION_ERROR,
+                        jsonEx);
+                }
+                mCallback.onTokenRevocationRequestCompleted(null, ex);
+                return;
+            }
+
+            TokenRevocationResponse response;
+            try {
+                response = new TokenRevocationResponse.Builder(mRequest).fromResponseJson(json).build();
+            } catch (JSONException jsonEx) {
+                mCallback.onTokenRevocationRequestCompleted(null,
+                    AuthorizationException.fromTemplate(
+                        GeneralErrors.JSON_DESERIALIZATION_ERROR,
+                        jsonEx));
+                return;
+            }
+
+            Logger.debug("Token revocation with %s completed",
+                mRequest.configuration.tokenEndpoint);
+            mCallback.onTokenRevocationRequestCompleted(response, null);
+        }
+
+        /**
+         * GitHub will only return a spec-compliant response if JSON is explicitly defined
+         * as an acceptable response type. As this is essentially harmless for all other
+         * spec-compliant IDPs, we add this header if no existing Accept header has been set
+         * by the connection builder.
+         */
+        private void addJsonToAcceptHeader(URLConnection conn) {
+            if (TextUtils.isEmpty(conn.getRequestProperty("Accept"))) {
+                conn.setRequestProperty("Accept", "application/json");
+            }
+        }
+    }
+
+    /**
+     * Callback interface for token endpoint requests.
+     * @see AuthorizationService#performTokenRevocationRequest
+     */
+    public interface TokenRevocationResponseCallback {
+        /**
+         * Invoked when the request completes successfully or fails.
+         *
+         * Exactly one of `response` or `ex` will be non-null. If `response` is `null`, a failure
+         * occurred during the request. This can happen if a bad URI was provided, no connection
+         * to the server could be established, or the response JSON was incomplete or incorrectly
+         * formatted.
+         *
+         * @param response the retrieved token revocation response, if successful; `null` otherwise.
+         * @param ex a description of the failure, if one occurred: `null` otherwise.
+         *
+         * @see AuthorizationException.TokenRevocationRequestErrors
+         */
+        void onTokenRevocationRequestCompleted(@Nullable TokenRevocationResponse response,
+                                     @Nullable AuthorizationException ex);
     }
 
     private static class RegistrationRequestTask

@@ -36,6 +36,7 @@ public class AuthorizationServiceDiscoveryTest {
     // ToDo: add more tests for remaining getters
     static final String TEST_AUTHORIZATION_ENDPOINT = "http://test.openid.com/o/oauth/auth";
     static final String TEST_TOKEN_ENDPOINT = "http://test.openid.com/o/oauth/token";
+    static final String TEST_TOKEN_REVOCATION_ENDPOINT = "https://test.openid.com/o/oauth/revoke";
     static final String TEST_USERINFO_ENDPOINT = "http://test.openid.com/o/oauth/userinfo";
     static final String TEST_REGISTRATION_ENDPOINT = "http://test.openid.com/o/oauth/register";
     static final String TEST_END_SESSION_ENDPOINT = "http://test.openid.com/o/oauth/logout";
@@ -52,6 +53,7 @@ public class AuthorizationServiceDiscoveryTest {
         TEST_ISSUER,
         TEST_AUTHORIZATION_ENDPOINT,
         TEST_TOKEN_ENDPOINT,
+        TEST_TOKEN_REVOCATION_ENDPOINT,
         TEST_USERINFO_ENDPOINT,
         TEST_REGISTRATION_ENDPOINT,
         TEST_END_SESSION_ENDPOINT,
@@ -182,6 +184,11 @@ public class AuthorizationServiceDiscoveryTest {
     @Test
     public void testGetTokenEndpoint() {
         assertEquals(TEST_TOKEN_ENDPOINT, mDiscovery.getTokenEndpoint().toString());
+    }
+
+    @Test
+    public void testGetTokenRevocationEndpoint() {
+        assertEquals(TEST_TOKEN_REVOCATION_ENDPOINT, mDiscovery.getTokenRevocationEndpoint().toString());
     }
 
     @Test

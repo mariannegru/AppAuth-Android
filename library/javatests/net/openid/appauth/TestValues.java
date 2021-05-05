@@ -69,6 +69,7 @@ class TestValues {
         String issuer,
         String authorizationEndpoint,
         String tokenEndpoint,
+        String tokenRevocationEndpoint,
         String userInfoEndpoint,
         String registrationEndpoint,
         String endSessionEndpoint,
@@ -84,6 +85,7 @@ class TestValues {
             + " \"issuer\": \"" + issuer + "\",\n"
             + " \"authorization_endpoint\": \"" + authorizationEndpoint + "\",\n"
             + " \"token_endpoint\": \"" + tokenEndpoint + "\",\n"
+            + " \"revocation_endpoint\": \"" + tokenRevocationEndpoint + "\",\n"
             + " \"userinfo_endpoint\": \"" + userInfoEndpoint + "\",\n"
             + " \"end_session_endpoint\": \"" + endSessionEndpoint + "\",\n"
             + " \"registration_endpoint\": \"" + registrationEndpoint + "\",\n"

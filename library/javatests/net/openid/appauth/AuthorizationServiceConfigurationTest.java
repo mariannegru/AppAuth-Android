@@ -58,6 +58,7 @@ public class AuthorizationServiceConfigurationTest {
     private static final String TEST_ISSUER = "test_issuer";
     private static final String TEST_AUTH_ENDPOINT = "https://test.openid.com/o/oauth/auth";
     private static final String TEST_TOKEN_ENDPOINT = "https://test.openid.com/o/oauth/token";
+    private static final String TEST_TOKEN_REVOCATION_ENDPOINT = "https://test.openid.com/o/oauth/revoke";
     private static final String TEST_END_SESSION_ENDPOINT = "https://test.openid.com/o/oauth/logout";
     private static final String TEST_REGISTRATION_ENDPOINT = "https://test.openid.com/o/oauth/registration";
     private static final String TEST_USERINFO_ENDPOINT = "https://test.openid.com/o/oauth/userinfo";
@@ -75,6 +76,7 @@ public class AuthorizationServiceConfigurationTest {
             + " \"issuer\": \"" + TEST_ISSUER + "\",\n"
             + " \"authorization_endpoint\": \"" + TEST_AUTH_ENDPOINT + "\",\n"
             + " \"token_endpoint\": \"" + TEST_TOKEN_ENDPOINT + "\",\n"
+            + " \"revocation_endpoint\": \"" + TEST_TOKEN_REVOCATION_ENDPOINT + "\",\n"
             + " \"registration_endpoint\": \"" + TEST_REGISTRATION_ENDPOINT + "\",\n"
             + " \"end_session_endpoint\": \"" + TEST_END_SESSION_ENDPOINT + "\",\n"
             + " \"userinfo_endpoint\": \"" + TEST_USERINFO_ENDPOINT + "\",\n"
@@ -93,6 +95,7 @@ public class AuthorizationServiceConfigurationTest {
             + " \"issuer\": \"" + TEST_ISSUER + "\",\n"
             + " \"authorization_endpoint\": \"" + TEST_AUTH_ENDPOINT + "\",\n"
             + " \"token_endpoint\": \"" + TEST_TOKEN_ENDPOINT + "\",\n"
+            + " \"revocation_endpoint\": \"" + TEST_TOKEN_REVOCATION_ENDPOINT + "\",\n"
             + " \"userinfo_endpoint\": \"" + TEST_USERINFO_ENDPOINT + "\",\n"
             + " \"jwks_uri\": \"" + TEST_JWKS_URI + "\",\n"
             + " \"response_types_supported\": " + toJson(TEST_RESPONSE_TYPE_SUPPORTED) + ",\n"
@@ -109,6 +112,7 @@ public class AuthorizationServiceConfigurationTest {
             + " \"issuer\": \"" + TEST_ISSUER + "\",\n"
             + " \"authorization_endpoint\": \"" + TEST_AUTH_ENDPOINT + "\",\n"
             + " \"token_endpoint\": \"" + TEST_TOKEN_ENDPOINT + "\",\n"
+            + " \"revocation_endpoint\": \"" + TEST_TOKEN_REVOCATION_ENDPOINT + "\",\n"
             + " \"userinfo_endpoint\": \"" + TEST_USERINFO_ENDPOINT + "\"\n"
             + "}";
 
@@ -127,7 +131,8 @@ public class AuthorizationServiceConfigurationTest {
                 Uri.parse(TEST_AUTH_ENDPOINT),
                 Uri.parse(TEST_TOKEN_ENDPOINT),
                 Uri.parse(TEST_REGISTRATION_ENDPOINT),
-                Uri.parse(TEST_END_SESSION_ENDPOINT));
+                Uri.parse(TEST_END_SESSION_ENDPOINT),
+                Uri.parse(TEST_TOKEN_REVOCATION_ENDPOINT));
         when(mConnectionBuilder.openConnection(any(Uri.class))).thenReturn(mHttpConnection);
 
         mPausedExecutorService = new PausedExecutorService();
@@ -157,13 +162,33 @@ public class AuthorizationServiceConfigurationTest {
                 Uri.parse(TEST_AUTH_ENDPOINT),
                 Uri.parse(TEST_TOKEN_ENDPOINT),
                 null,
-                Uri.parse(TEST_END_SESSION_ENDPOINT));
+                Uri.parse(TEST_END_SESSION_ENDPOINT),
+                Uri.parse(TEST_TOKEN_REVOCATION_ENDPOINT));
         AuthorizationServiceConfiguration deserialized = AuthorizationServiceConfiguration
                 .fromJson(config.toJson());
         assertThat(deserialized.authorizationEndpoint).isEqualTo(config.authorizationEndpoint);
         assertThat(deserialized.tokenEndpoint).isEqualTo(config.tokenEndpoint);
         assertThat(deserialized.registrationEndpoint).isNull();
         assertThat(deserialized.endSessionEndpoint).isEqualTo(config.endSessionEndpoint);
+        assertThat(deserialized.tokenRevocationEndpoint).isEqualTo(config.tokenRevocationEndpoint);
+    }
+
+
+    @Test
+    public void testSerializationWithoutRevocationEndpoint() throws Exception {
+        AuthorizationServiceConfiguration config = new AuthorizationServiceConfiguration(
+            Uri.parse(TEST_AUTH_ENDPOINT),
+            Uri.parse(TEST_TOKEN_ENDPOINT),
+            Uri.parse(TEST_REGISTRATION_ENDPOINT),
+            Uri.parse(TEST_END_SESSION_ENDPOINT),
+            null);
+        AuthorizationServiceConfiguration deserialized = AuthorizationServiceConfiguration
+            .fromJson(config.toJson());
+        assertThat(deserialized.authorizationEndpoint).isEqualTo(config.authorizationEndpoint);
+        assertThat(deserialized.tokenEndpoint).isEqualTo(config.tokenEndpoint);
+        assertThat(deserialized.registrationEndpoint).isEqualTo(config.registrationEndpoint);
+        assertThat(deserialized.endSessionEndpoint).isEqualTo(config.endSessionEndpoint);
+        assertThat(deserialized.tokenRevocationEndpoint).isNull();
     }
 
     @Test
@@ -177,6 +202,7 @@ public class AuthorizationServiceConfigurationTest {
         assertThat(deserialized.tokenEndpoint).isEqualTo(config.tokenEndpoint);
         assertThat(deserialized.endSessionEndpoint).isNull();
         assertThat(deserialized.registrationEndpoint).isNull();
+        assertThat(deserialized.tokenRevocationEndpoint).isNull();
     }
 
     @Test
@@ -200,6 +226,7 @@ public class AuthorizationServiceConfigurationTest {
     private void assertMembers(AuthorizationServiceConfiguration config) {
         assertEquals(TEST_AUTH_ENDPOINT, config.authorizationEndpoint.toString());
         assertEquals(TEST_TOKEN_ENDPOINT, config.tokenEndpoint.toString());
+        assertEquals(TEST_TOKEN_REVOCATION_ENDPOINT, config.tokenRevocationEndpoint.toString());
         assertEquals(TEST_REGISTRATION_ENDPOINT, config.registrationEndpoint.toString());
         assertEquals(TEST_END_SESSION_ENDPOINT, config.endSessionEndpoint.toString());
     }

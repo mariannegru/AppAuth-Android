@@ -65,6 +65,7 @@ public final class Configuration {
     private Uri mDiscoveryUri;
     private Uri mAuthEndpointUri;
     private Uri mTokenEndpointUri;
+    private Uri mTokenRevocationEndpointUri;
     private Uri mEndSessionEndpoint;
     private Uri mRegistrationEndpointUri;
     private Uri mUserInfoEndpointUri;
@@ -157,6 +158,11 @@ public final class Configuration {
     }
 
     @Nullable
+    public Uri getTokenRevocationEndpointUri() {
+        return mTokenRevocationEndpointUri;
+    }
+
+    @Nullable
     public Uri getEndSessionEndpoint() {
         return mEndSessionEndpoint;
     }
@@ -219,6 +225,7 @@ public final class Configuration {
             mAuthEndpointUri = getRequiredConfigWebUri("authorization_endpoint_uri");
 
             mTokenEndpointUri = getRequiredConfigWebUri("token_endpoint_uri");
+            mTokenRevocationEndpointUri = getRequiredConfigWebUri("token_revocation_endpoint_uri");
             mUserInfoEndpointUri = getRequiredConfigWebUri("user_info_endpoint_uri");
             mEndSessionEndpoint = getRequiredConfigUri("end_session_endpoint");
 

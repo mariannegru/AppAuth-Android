@@ -27,6 +27,7 @@ import static net.openid.appauth.AuthorizationServiceDiscoveryTest.TEST_SCOPES_S
 import static net.openid.appauth.AuthorizationServiceDiscoveryTest.TEST_SUBJECT_TYPES_SUPPORTED;
 import static net.openid.appauth.AuthorizationServiceDiscoveryTest.TEST_TOKEN_ENDPOINT;
 import static net.openid.appauth.AuthorizationServiceDiscoveryTest.TEST_TOKEN_ENDPOINT_AUTH_METHODS;
+import static net.openid.appauth.AuthorizationServiceDiscoveryTest.TEST_TOKEN_REVOCATION_ENDPOINT;
 import static net.openid.appauth.AuthorizationServiceDiscoveryTest.TEST_USERINFO_ENDPOINT;
 import static net.openid.appauth.TestValues.TEST_APP_REDIRECT_URI;
 import static net.openid.appauth.TestValues.TEST_AUTH_CODE;
@@ -416,6 +417,7 @@ public class IdTokenTest {
             issuer,
             TEST_AUTHORIZATION_ENDPOINT,
             TEST_TOKEN_ENDPOINT,
+            TEST_TOKEN_REVOCATION_ENDPOINT,
             TEST_USERINFO_ENDPOINT,
             TEST_REGISTRATION_ENDPOINT,
             TEST_END_SESSION_ENDPOINT,
